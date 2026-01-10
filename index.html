@@ -1,11 +1,3 @@
-<script>
-  const pw = prompt("사무실 전화번호 뒤 4자리 937-0000 / 김복성(KBS)");
-  if (pw !== "4775") {
-    document.body.innerHTML = "DENY";
-  }
-</script>
-
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -149,6 +141,12 @@
 </div>
 
 <script>
+
+const pw = prompt("사무실 전화번호 뒤 4자리 937-0000 / 김복성(KBS)");
+  if (pw !== "4775") {
+    document.body.innerHTML = "DENY";
+  }
+  
 /* ===== 언어팩 ===== */
 const langPack = {
   ko: {
@@ -281,4 +279,5 @@ applyLanguage();
 </script>
 
 </body>
+
 </html>
