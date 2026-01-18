@@ -8,20 +8,11 @@
 <title>TRANSMITTER BIT RESULT</title>
 
 <style>
-  /* ===== iOS 좌우 스크롤 방지 ===== */
-  html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
-  * {
-    box-sizing: border-box;
-  }
-
   body {
     font-family: Arial, sans-serif;
     margin: 10px;
     padding: 0;
+    overflow-x: hidden;
   }
 
   h1 {
@@ -45,6 +36,7 @@
     border: 1px solid #333;
     background: #f2f2f2;
     cursor: pointer;
+    flex: none;
   }
 
   .lang-btn.active {
@@ -73,11 +65,11 @@
     font-size: 16px;
     text-align: center;
     border: 1px solid #333;
+    box-sizing: border-box;
   }
 
   table {
     width: 100%;
-    max-width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
     margin-bottom: 10px;
@@ -109,12 +101,16 @@
     background: #ffd6d6;
     color: #c40000;
     font-weight: bold;
+    letter-spacing: 0.3em;
+    text-align: center;
   }
 
   .ok {
     background: #dff5d8;
     color: #0a7a0a;
     font-weight: bold;
+    letter-spacing: 0.3em;
+    text-align: center;
   }
 
   .bit-code {
@@ -135,6 +131,11 @@
     margin-bottom: 15px;
   }
 
+  .btn-wrap button {
+  min-width: 150px;
+  text-align: center;
+  }
+
   button {
     padding: 6px 12px;
     font-size: 14px;
@@ -149,6 +150,13 @@
     td, th { padding: 3px 5px; }
     button { font-size: 13px; padding: 5px 10px; }
   }
+
+  #analysisArea {
+    border: 1px solid #333;
+    padding: 10px;
+    background: #fafafa;
+  }
+
 </style>
 </head>
 
@@ -175,86 +183,93 @@
 
 <div class="btn-wrap">
   <button id="toggleBtn" style="display:none;">전체 결과 펼치기</button>
+  <button id="analysisBtn" style="display:none;">점검결과 해석</button>
 </div>
 
-<script>
-/* ===== 비밀번호 SHA-256 검증 ===== */
-async function checkPassword() {
-  const pw = prompt("사무실 전화번호 뒤 4자리 937-0000 / 김복성(KBS)");
-  if (pw === null) deny();
+<div id="analysisArea" style="display:none;margin-top:10px;"></div>
 
-  const encoder = new TextEncoder();
-  const data = encoder.encode(pw);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashHex = Array.from(new Uint8Array(hashBuffer))
+<script>
+async function sha256(str) {
+  const buf = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, "0"))
     .join("");
-
-  const correctHash =
-    "32b39bf12b85ca3a243d1e87f605cbad239fae979c1f32665b436c4342831531";
-
-  if (hashHex !== correctHash) deny();
 }
 
 function deny() {
-  document.body.innerHTML =
-    "<h2 style='text-align:center;color:#c40000;margin-top:40px'>" +
-    "ACCESS DENYED<br>비밀번호를 틀렸습니다.<br>김복성 주무관 문의</h2>";
+  document.body.innerHTML = `
+    <div style="text-align:center;margin-top:40px;font-family:Arial,sans-serif">
+      <h2 style="color:#c40000">
+        ACCESS DENYED<br><br>비밀번호를 틀렸습니다.<br>김복성 주무관 문의 바랍니다</h2>
+      <button
+        onclick="location.reload()"
+        style="
+          margin-top:15px;
+          padding:8px 16px;
+          font-size:14px;
+          font-weight:bold;
+          cursor:pointer;
+          border:1px solid #333;
+          background:#f2f2f2;
+        ">
+        다시 로그인
+      </button>
+    </div>
+  `;
 }
 
-checkPassword();
-
-/* ===== 언어팩 ===== */
-const langPack = {
-  ko: {
-    title: "TRANSMITTER BIT 결과",
-    bit: "비트내용",
-    result: "점검결과",
-    all: "전체 결과 펼치기",
-    pass: "정상",
-    fail: "결함",
-    code: "코드입력",
-    hidePass: "정상 숨기기",
-    placeholder: "예: 0x77d6 또는 77d6"
-  },
-  en: {
-    title: "TRANSMITTER BIT RESULT",
-    bit: "BIT",
-    result: "RESULT",
-    all: "ALL RESULT",
-    pass: "PASS",
-    fail: "FAIL",
-    code: "CODE",
-    hidePass: "HIDE PASS",
-    placeholder: "Ex: 0x77d6 or 77d6"
+(async () => {
+  const pw = prompt("탑재반 전화번호 뒤 4자리 937-0000 -김복성(KBS)");
+  const hash = await sha256(pw || "");
+  if (hash !== "32b39bf12b85ca3a243d1e87f605cbad239fae979c1f32665b436c4342831531") {
+    deny();
   }
+})();
+
+const langPack = {
+  ko: { title:"TRANSMITTER BIT 결과", bit:"비트내용", result:"점검결과", all:"전체 결과 펼치기", pass:"정상", fail:"결함", code:"코드입력", hidePass:"정상 숨기기", placeholder:"예: 0x77d6 또는 77d6", analysis:"점검결과 해석" },
+  en: { title:"TRANSMITTER BIT RESULT", bit:"BIT", result:"RESULT", all:"ALL RESULT", pass:"PASS", fail:"FAIL", code:"CODE", hidePass:"HIDE PASS", placeholder:"Ex: 0x77d6 or 77d6", analysis:"ANALYSIS" }
 };
 
 let lang = "ko";
 
-/* ===== BIT MAP ===== */
 const bitMap = [
-  { code:"XMGO", name:"Transmit Go" },
-  { code:"RFIP", name:"RF Input Power" },
-  { code:"CUFL", name:"Coolant Flow" },
-  { code:"TEMP", name:"Temperature" },
-  { code:"XMPL", name:"Transmit Power Level" },
-  { code:"PWRR", name:"Pulse Width / Pulse Rep Rate" },
-  { code:"TFPS", name:"TWT Filament Power" },
-  { code:"VSWR", name:"Voltage Standing Wave Ratio" },
-  { code:"DUCY", name:"Duty Cycle" },
-  { code:"IONC", name:"Ion Pump Current" },
-  { code:"HVPS", name:"High Voltage Power Supply" },
-  { code:"TBOC", name:"TWT Body Current" },
-  { code:"TGBV", name:"TWT Grid Bias Voltage" },
-  { code:"LVPS", name:"Low Voltage Power Supply" },
-  { code:"LOCK", name:"Interlocks" },
-  { code:"XMRY", name:"Transmit Ready" }
+  { code: "XMGO", name: "Transmit Go" }, { code: "RFIP", name: "RF Input Power" },
+  { code: "CUFL", name: "Coolant Flow" }, { code: "TEMP", name: "Temperature" },
+  { code: "XMPL", name: "Transmit Power Level" }, { code: "PWRR", name: "Pulse Width / Pulse Rep Rate" },
+  { code: "TFPS", name: "TWT Filament Power" }, { code: "VSWR", name: "Voltage Standing Wave Ratio" },
+  { code: "DUCY", name: "Duty Cycle" }, { code: "IONC", name: "Ion Pump Current" },
+  { code: "HVPS", name: "High Voltage Power Supply" }, { code: "TBOC", name: "TWT Body Current" },
+  { code: "TGBV", name: "TWT Grid Bias Voltage" }, { code: "LVPS", name: "Low Voltage Power Supply" },
+  { code: "LOCK", name: "Interlocks" }, { code: "XMRY", name: "Transmit Ready" }
 ];
+
+const analysisMap = {
+  XMGO:{ko:"송신기가 NO GO 상태",en:"Transmitter is in NO GO condition"},
+  RFIP:{ko:"RF INPUT 전력(RCU 입력) 불안정",en:"RF input power (RCU input) is unstable"},
+  CUFL:{ko:"냉각유(PAO) 순환 상태 불량",en:"PAO coolant flow condition is abnormal"},
+  TEMP:{ko:"온도 허용범위 미달/초과",en:"Temperature is Out of Tolerance"},
+  XMPL:{ko:"송신 전력레벨 허용범위 미달/초과",en:"Transmit power level is Out of Tolerance"},
+  PWRR:{ko:"펄스 폭/주기 허용범위 미달/초과",en:"Pulse width / PRR is Out of Tolerance"},
+  TFPS:{ko:"진행파관(TWT) 필라멘트 전원 불량",en:"TWT filament power failure"},
+  VSWR:{ko:"정재파비(VSWR) 과도 발생",en:"Excessive VSWR detected"},
+  DUCY:{ko:"펄스 듀티비 허용범위 미달/초과",en:"Pulse duty cycle is Out of Tolerance"},
+  IONC:{ko:"이온펌프 전류량 허용범위 미달/초과",en:"Ion pump current is Out of Tolerance"},
+  HVPS:{ko:"고전압 전원공급 허용범위 미달/초과",en:"High voltage power supply is Out of Tolerance"},
+  TBOC:{ko:"진행파관 바디전류 과발생",en:"Excessive TWT body current"},
+  TGBV:{ko:"진행파관 그리드 바이어스 전압 불량",en:"TWT grid bias voltage failure"},
+  LVPS:{ko:"저전압 전원공급 허용범위 미달/초과",en:"Low voltage power supply is Out of Tolerance"},
+  LOCK:{ko:"인터록 잠금상태",en:"Interlock is engaged"},
+  XMRY:{ko:"송신기가 준비되지 않음",en:"Transmitter is not ready"}
+};
 
 const input = document.getElementById("codeInput");
 const table = document.getElementById("resultTable");
 const btn = document.getElementById("toggleBtn");
+const analysisBtn = document.getElementById("analysisBtn");
+const analysisArea = document.getElementById("analysisArea");
+
 const btnKo = document.getElementById("btnKo");
 const btnEn = document.getElementById("btnEn");
 
@@ -268,74 +283,89 @@ function setLanguage(l) {
   lang = l;
   btnKo.classList.toggle("active", l === "ko");
   btnEn.classList.toggle("active", l === "en");
+
+  // ⭐ 결과 다시 그리기 (핵심)
+  if (lastBinary) {
+    showingAll ? showAllResults() : showFailOnly();
+  }
+
   applyLanguage();
-  if (lastBinary) showingAll ? showAllResults() : showFailOnly();
+
+  if (analysisArea.style.display === "block") showAnalysis();
 }
 
 input.addEventListener("input", () => {
-  input.value = input.value.toUpperCase();
   let hex = input.value.trim().toLowerCase();
-  if (hex.startsWith("0x")) hex = hex.slice(2);
-  if (!/^[0-9a-f]{4}$/.test(hex)) {
-    clearResults(); btn.style.display="none"; lastBinary=""; return;
+  if(hex.startsWith("0x")) hex=hex.slice(2);
+  if(!/^[0-9a-f]{4}$/.test(hex)){
+    clearResults();
+    btn.style.display="none";
+    analysisBtn.style.display="none";
+    analysisArea.style.display="none";
+    lastBinary="";
+    return;
   }
-  lastBinary = parseInt(hex,16).toString(2).padStart(16,"0");
-  showingAll = false;
+  lastBinary=parseInt(hex,16).toString(2).padStart(16,"0");
+  showingAll=false;
   showFailOnly();
   btn.style.display="inline-block";
-  btn.textContent = langPack[lang].all;
+  analysisBtn.style.display="inline-block";
+  applyLanguage();
 });
 
 btn.onclick = () => {
   showingAll ? showFailOnly() : showAllResults();
-  btn.textContent = showingAll ? langPack[lang].all : langPack[lang].hidePass;
   showingAll = !showingAll;
+  applyLanguage();
 };
 
-function showFailOnly() {
-  clearResults();
-  let hasFail = false;
+analysisBtn.onclick = showAnalysis;
+
+function showAnalysis(){
+  analysisArea.innerHTML="";
   lastBinary.split("").forEach((bit,i)=>{
-    if (bit==="0") { appendRow(i,langPack[lang].fail,"fail"); hasFail=true; }
+    if(bit==="0"){
+      const code=bitMap[i].code;
+      const div=document.createElement("div");
+      div.style.marginBottom="6px";
+      div.innerHTML=`<b>${code}</b> : ${analysisMap[code][lang]}`;
+      analysisArea.appendChild(div);
+    }
   });
-  if (!hasFail) {
-    table.innerHTML += `<tr><td colspan="2" class="ok" style="text-align:center">${langPack[lang].pass}</td></tr>`;
-  }
+  analysisArea.style.display="block";
 }
 
-function showAllResults() {
+function showFailOnly(){
   clearResults();
-  lastBinary.split("").forEach((bit,i)=>{
-    appendRow(i, bit==="0"?langPack[lang].fail:langPack[lang].pass, bit==="0"?"fail":"ok");
-  });
+  lastBinary.split("").forEach((bit,i)=>{if(bit==="0") appendRow(i,langPack[lang].fail,"fail");});
 }
 
-function appendRow(i,text,cls) {
-  const info = bitMap[i];
-  if (!info) return;
-  const row = document.createElement("tr");
-  row.innerHTML =
-    `<td class="left"><div class="bit-code">${info.code}</div><div class="bit-name">${info.name}</div></td>
-     <td class="right ${cls}">${text}</td>`;
+function showAllResults(){
+  clearResults();
+  lastBinary.split("").forEach((bit,i)=>{appendRow(i,bit==="0"?langPack[lang].fail:langPack[lang].pass,bit==="0"?"fail":"ok");});
+}
+
+function appendRow(i,text,cls){
+  const info=bitMap[i];
+  const row=document.createElement("tr");
+  row.innerHTML=`<td class="left"><div class="bit-code">${info.code}</div><div class="bit-name">${info.name}</div></td><td class="right ${cls}">${text}</td>`;
   table.appendChild(row);
 }
 
-function clearResults() {
+function clearResults(){
   table.querySelectorAll("tr:not(:first-child)").forEach(tr=>tr.remove());
 }
 
-function applyLanguage() {
-  title.textContent = langPack[lang].title;
-  thBit.textContent = langPack[lang].bit;
-  thResult.textContent = langPack[lang].result;
-  codeLabel.textContent = langPack[lang].code;
-  input.placeholder = langPack[lang].placeholder;
+function applyLanguage(){
+  document.getElementById("title").textContent=langPack[lang].title;
+  document.getElementById("thBit").textContent=langPack[lang].bit;
+  document.getElementById("thResult").textContent=langPack[lang].result;
+  document.getElementById("codeLabel").textContent=langPack[lang].code;
+  btn.textContent = showingAll ? langPack[lang].hidePass : langPack[lang].all;
+  analysisBtn.textContent = langPack[lang].analysis;
+  input.placeholder=langPack[lang].placeholder;
 }
-
-applyLanguage();
 </script>
 
 </body>
 </html>
-
-
