@@ -23,10 +23,20 @@
 
   .top-bar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 10px;
+  }
+
+  .left-top {
+    display: flex;
     gap: 5px;
-    flex-wrap: wrap;
+  }
+
+  .right-top {
+    font-size: 12px;
+    font-weight: bold;
+    color: #555;
   }
 
   .lang-btn {
@@ -151,11 +161,38 @@
     button { font-size: 13px; padding: 5px 10px; }
   }
 
-  #analysisArea {
-    border: 1px solid #333;
-    padding: 10px;
-    background: #fafafa;
+#analysisArea table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#analysisArea th,
+#analysisArea td {
+  border: 1px solid #333;
+  padding: 8px 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+#analysisArea th {
+  width: 80px;
+  text-align: center;
+  background: #f2f2f2;
+  font-weight: bold;
+}
+
+#analysisArea td {
+  text-align: left;
+}
+
+@media screen and (max-width: 480px) {
+  #analysisArea th,
+  #analysisArea td {
+    font-size: 13px;
+    padding: 6px 8px;
   }
+}
 
 </style>
 </head>
@@ -163,8 +200,13 @@
 <body>
 
 <div class="top-bar">
-  <button class="lang-btn active" id="btnKo">한글</button>
-  <button class="lang-btn" id="btnEn">ENGLISH</button>
+  <div class="left-top">
+    <button class="lang-btn active" id="btnKo">한글</button>
+    <button class="lang-btn" id="btnEn">ENGLISH</button>
+  </div>
+  <div class="right-top">
+    ver.260119
+  </div>
 </div>
 
 <h1 id="title">TRANSMITTER BIT 결과</h1>
@@ -220,7 +262,7 @@ function deny() {
 }
 
 (async () => {
-  const pw = prompt("탑재반 전화번호 뒤 4자리 937-0000 -김복성(KBS)");
+  const pw = prompt("탑재반 전화번호 뒤 4자리 937-0000 / 김복성(KBS)");
   const hash = await sha256(pw || "");
   if (hash !== "32b39bf12b85ca3a243d1e87f605cbad239fae979c1f32665b436c4342831531") {
     deny();
@@ -322,17 +364,27 @@ btn.onclick = () => {
 analysisBtn.onclick = showAnalysis;
 
 function showAnalysis(){
-  analysisArea.innerHTML="";
-  lastBinary.split("").forEach((bit,i)=>{
-    if(bit==="0"){
-      const code=bitMap[i].code;
-      const div=document.createElement("div");
-      div.style.marginBottom="6px";
-      div.innerHTML=`<b>${code}</b> : ${analysisMap[code][lang]}`;
-      analysisArea.appendChild(div);
+  analysisArea.innerHTML = "";
+
+  const table = document.createElement("table");
+
+  lastBinary.split("").forEach((bit, i) => {
+    if (bit === "0") {
+      const code = bitMap[i].code;
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <th>${code}</th>
+        <td>${analysisMap[code][lang]}</td>
+      `;
+
+      table.appendChild(tr);
     }
   });
-  analysisArea.style.display="block";
+
+  analysisArea.appendChild(table);
+  analysisArea.style.display = "block";
 }
 
 function showFailOnly(){
